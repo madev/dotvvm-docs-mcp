@@ -77,3 +77,25 @@ export async function fetchControlDocs(
   await cacheSet(cacheKey, composed);
   return composed;
 }
+
+export async function fetchConceptDocs(
+  repoPath: string,
+  cacheKey: string
+): Promise<string> {
+  const cached = await cacheGet(cacheKey);
+  if (cached) return cached;
+
+  const content = await fetchRaw(repoPath);
+  if (!content) {
+    return "(Documentation content not found)";
+  }
+
+  // Replace relative image references with text notes (images can't render in MCP)
+  const processed = content.replace(
+    /!\[([^\]]*)\]\((?!https?:\/\/)([^)]+\.(?:png|jpg|jpeg|gif|svg))\)/gi,
+    "[$1 — image: $2]"
+  );
+
+  await cacheSet(cacheKey, processed);
+  return processed;
+}

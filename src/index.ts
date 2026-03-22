@@ -9,7 +9,12 @@ import {
   type ControlCategory,
   type ControlEntry,
 } from "./controls.js";
-import { fetchControlDocs } from "./fetcher.js";
+import { fetchControlDocs, fetchConceptDocs } from "./fetcher.js";
+import {
+  discoverConcepts,
+  resolveConceptPage,
+  formatConceptIndex,
+} from "./concepts.js";
 
 const ALL_CATEGORIES: ControlCategory[] = [
   "builtin",
@@ -191,6 +196,82 @@ server.tool(
     const docs = await fetchControlDocs(entry.repoPath, cacheKey);
 
     const header = `# ${entry.prefix}:${entry.name}\n**Category:** ${entry.category}\n**Tag:** \`<${entry.prefix}:${entry.name}>\`\n`;
+
+    return {
+      content: [{ type: "text" as const, text: header + "\n" + docs }],
+    };
+  }
+);
+
+// Resource: dotvvm://concepts
+server.resource(
+  "dotvvm-concepts",
+  "dotvvm://concepts",
+  {
+    description:
+      "Index of all DotVVM concept documentation pages — covers data binding, routing, validation, viewmodels, security, layout, control development, and more.",
+    mimeType: "text/markdown",
+  },
+  async () => {
+    const registry = await discoverConcepts();
+    return {
+      contents: [
+        {
+          uri: "dotvvm://concepts",
+          mimeType: "text/markdown",
+          text: formatConceptIndex(registry),
+        },
+      ],
+    };
+  }
+);
+
+// Tool 3: get_dotvvm_concept_docs
+server.tool(
+  "get_dotvvm_concept_docs",
+  "Get documentation for a DotVVM framework concept. Use this when you need to understand how DotVVM works — topics include data binding (value binding, resource binding, binding context), routing (parameters, localization, redirection), validation (client-side, extensibility), viewmodels (filters, protection, caching), control development (markup controls, code-only controls, properties), layout (master pages, SPA), security (authentication, authorization), localization, diagnostics, and more. Use a path like 'data-binding/value-binding' or 'routing/overview'. Read the dotvvm://concepts resource first to see all available pages.",
+  {
+    path: z
+      .string()
+      .describe(
+        'Concept page path, e.g. "data-binding/value-binding", "routing/overview", "viewmodels/filters/action-filters", or "server-side-rendering"'
+      ),
+  },
+  async ({ path }) => {
+    const registry = await discoverConcepts();
+    const page = resolveConceptPage(registry, path);
+
+    if (!page) {
+      const searchTerm =
+        path.toLowerCase().split("/").pop() ?? path.toLowerCase();
+      const suggestions = registry.allPages
+        .filter((p) => p.path.toLowerCase().includes(searchTerm))
+        .slice(0, 10)
+        .map((p) => `  - ${p.path}`);
+
+      let msg = `Concept page "${path}" not found.`;
+      if (suggestions.length > 0) {
+        msg += `\n\nDid you mean one of these?\n${suggestions.join("\n")}`;
+      } else {
+        msg += `\n\nUse list_dotvvm_concepts or read the dotvvm://concepts resource to see all available pages.`;
+      }
+
+      return {
+        content: [{ type: "text" as const, text: msg }],
+        isError: true,
+      };
+    }
+
+    const cacheKey = `concept__${page.path.replace(/\//g, "__")}`;
+    const docs = await fetchConceptDocs(page.repoPath, cacheKey);
+
+    const breadcrumb = page.category
+      ? page.subCategory
+        ? `${page.category} > ${page.subCategory} > ${page.name}`
+        : `${page.category} > ${page.name}`
+      : page.name;
+
+    const header = `# ${page.name}\n**Path:** ${page.path}\n**Section:** ${breadcrumb}\n`;
 
     return {
       content: [{ type: "text" as const, text: header + "\n" + docs }],
