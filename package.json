@@ -1,5 +1,5 @@
 {
-  "name": "@madev/dotvvm-docs-mcp",
+  "name": "@madevsk/dotvvm-docs-mcp",
   "version": "0.2.0",
   "description": "MCP server exposing DotVVM UI control documentation to AI assistants",
   "type": "module",
