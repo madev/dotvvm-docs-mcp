@@ -68,6 +68,15 @@ Restart Claude Desktop after editing the config.
 |------|-------------|
 | `list_dotvvm_controls` | Lists all discovered controls. Accepts optional `category` or `prefix` filter. |
 | `get_dotvvm_control_docs` | Returns composed Markdown docs for a control (description, HTML output, code samples, ViewModels). |
+| `get_dotvvm_concept_docs` | Returns Markdown docs for a DotVVM framework concept page. Takes a `path` like `data-binding/value-binding` or `routing/overview`. |
+
+## MCP resources
+
+| Resource URI | Description |
+|--------------|-------------|
+| `dotvvm://concepts` | Index of all DotVVM concept documentation pages, grouped by category and subcategory. Read this to discover valid `path` values for `get_dotvvm_concept_docs`. |
+
+Concept documentation covers framework topics such as data binding (value binding, resource binding, binding context), routing (parameters, localization, redirection), validation (client-side, extensibility), viewmodels (filters, protection, caching), control development (markup controls, code-only controls, properties), layout (master pages, SPA), security (authentication, authorization), localization, and diagnostics.
 
 ### Control naming
 
@@ -101,8 +110,9 @@ Cache TTL is **30 days**. To force a refresh, delete the relevant `.json` file o
 
 ```
 src/
-├── index.ts      # MCP server entry point, tool definitions
+├── index.ts      # MCP server entry point, tool + resource definitions
 ├── controls.ts   # Control discovery via GitHub API + prefix resolution
+├── concepts.ts   # Concept page discovery + index formatting
 ├── fetcher.ts    # Raw content fetcher + Markdown composition
 └── cache.ts      # File-based disk cache (30-day TTL)
 ```
@@ -144,7 +154,9 @@ To point an MCP client at your local checkout instead of the published package:
 
 All documentation is fetched from:
 
-- **Directory listings:** `https://api.github.com/repos/riganti/dotvvm-docs/contents/Controls/{category}?ref=4.0`
-- **Raw content:** `https://raw.githubusercontent.com/riganti/dotvvm-docs/4.0/Controls/{category}/{ControlName}/`
+- **Control directory listings:** `https://api.github.com/repos/riganti/dotvvm-docs/contents/Controls/{category}?ref=4.0`
+- **Control raw content:** `https://raw.githubusercontent.com/riganti/dotvvm-docs/4.0/Controls/{category}/{ControlName}/`
+- **Concept directory listings:** `https://api.github.com/repos/riganti/dotvvm-docs/contents/Pages/concepts?ref=4.0`
+- **Concept raw content:** `https://raw.githubusercontent.com/riganti/dotvvm-docs/4.0/Pages/concepts/{category}/{page}.md`
 
-Each control directory may contain `control.md`, `output.md`, and `sample{N}/` subdirectories with `page.dothtml`, `ViewModel.cs`, and `sample.md`.
+Each control directory may contain `control.md`, `output.md`, and `sample{N}/` subdirectories with `page.dothtml`, `ViewModel.cs`, and `sample.md`. Concept pages are `.md` files organized into categories and subcategories.
